@@ -1,36 +1,23 @@
-This is the code used in the article **Solving Kernel Ridge Regression with Gradient Descent for a Non-constant Kernel**, available at https://arxiv.org/abs/2311.01762.
+This is the code used in the article **Solving Kernel Ridge Regression with Gradient Descent for a Non-constant Kernel**, available at https://arxiv.org/abs/2311.01762
 
-
-## Table 3:
+## Figures 1, 2 and 5:
 ```
-bash run_syn_dec.sh                #Calls syn_dec.py
-python tab_syn_dec.py
+python syn_dec.py
 ```
 
-## Figures 1 and 2:
+## Tables 3, 5 and 6:
 ```
-python plot_syn_dec_expl.py
-```
-
-## Figure 3:
-```
-bash run_bs_dec.sh                 #Calls bs_dec.py
-python plot_bs_dec.py
+bash run_dec.sh     #Calls dec.py
+python tab_dec.py
 ```
 
-## Figure 4:
+## Figures 3 and 6:
 ```
-bash run_syn_dd.sh                 #Calls double_descent.py
-plot_double_descent.py data=\"syn\"
-```
-
-## Figure 5:
-```
-bash run_bs_dd.sh                  #Calls double_descent.py
-plot_double_descent.py data=\"bs\"
+bash run_dd.sh      #Calls dd.py
+python plot_dd.py
 ```
 
-## Figure 6:
+## Figures 4 and 7:
 ```
-python3 plot_syn_dd_expl.py
+python syn_dd.py
 ```

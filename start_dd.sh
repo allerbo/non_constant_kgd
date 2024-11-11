@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-#SBATCH -A ####
-#SBATCH -t 00:40:00
+#SBATCH -A #####
+#SBATCH -t 02:00:00
 #SBATCH -o out_dd.txt
 #SBATCH -e err_dd.txt
 #SBATCH -n 1
 
-
-ml SciPy-bundle/2022.05-foss-2022a
+ml python/3.12.3
 source ~/my_python/bin/activate
-python double_descent.py $*
+python dd.py seed=$SLURM_ARRAY_TASK_ID $*
