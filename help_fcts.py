@@ -6,16 +6,12 @@ import warnings
 
 
 
-def make_data_real(data, seed=None, n_samps=100):
-  FRAC=0.8
-  if data=='wood':
-    dm_all=pd.read_csv('csv_files/wood-fibres.csv',sep=',').to_numpy()
-    dm_all+=np.random.normal(0,0.001,dm_all.shape) #to break ties
-  elif data=='compactiv':
+def make_data_real(data, seed=None, n_samps=100, frac=0.8, red_comp=True):
+  if data=='compactiv':
     dm_all=pd.read_csv('csv_files/compactiv.csv',sep=',').to_numpy()
     dm_all=np.roll(dm_all,1,1)
-    n_samps=82
-  if data=='super':
+    if red_comp: n_samps=82
+  elif data=='super':
     dm_all=pd.read_csv('csv_files/super.csv',sep=',').to_numpy()
     dm_all=np.roll(dm_all,1,1)
   elif data=='temp':
@@ -26,7 +22,7 @@ def make_data_real(data, seed=None, n_samps=100):
 
   np.random.seed(0)
   np.random.shuffle(dm_all)
-  if data=='compactiv' and seed>92:
+  if red_comp and data=='compactiv' and seed>92:
     dm=dm_all[(93+seed*(n_samps-1)):(93+(seed+1)*(n_samps-1)),:]
   else:
     dm=dm_all[seed*n_samps:(seed+1)*n_samps,:]
@@ -34,14 +30,14 @@ def make_data_real(data, seed=None, n_samps=100):
   X=dm[:,1:]
   X=(X-np.mean(X, 0))/np.std(X,0)
   n=X.shape[0]
-  X_tr=X[:int(FRAC*n),:]
-  X_te=X[int(FRAC*n):,:]
+  X_tr=X[:int(frac*n),:]
+  X_te=X[int(frac*n):,:]
   
   y=dm[:,0].reshape((-1,1))
   y=y-np.mean(y)
   
-  y_tr=y[:int(FRAC*n),:]
-  y_te=y[int(FRAC*n):,:]
+  y_tr=y[:int(frac*n),:]
+  y_te=y[int(frac*n):,:]
   
   return X_tr, y_tr, X_te, y_te
 
@@ -54,19 +50,15 @@ def r2(y,y_hat):
     y_hat=y_hat.reshape((-1,1))
   return 1-np.mean((y-y_hat)**2)/np.mean((y-np.mean(y))**2)
 
-def krr(xs,x_tr,y_tr_in,lbda,sigma, nu=np.inf,center=True):
-  y_tr_mean=np.mean(y_tr_in) if center else 0
-  y_tr=y_tr_in-y_tr_mean
+def krr(xs,x_tr,y_tr,lbda,sigma, nu=np.inf):
   Ks=kern(xs,x_tr,sigma, nu)
   K=kern(x_tr,x_tr,sigma, nu)
-  return Ks@np.linalg.solve(K+lbda*np.eye(K.shape[0]),y_tr)+y_tr_mean
+  return Ks@np.linalg.solve(K+lbda*np.eye(K.shape[0]),y_tr)
 
-def kgf(xs,x_tr,y_tr_in,t,sigma, nu=np.inf,center=True):
-  y_tr_mean=np.mean(y_tr_in) if center else 0
-  y_tr=y_tr_in-y_tr_mean
+def kgf(xs,x_tr,y_tr,t,sigma, nu=np.inf):
   Ks=kern(xs,x_tr,sigma, nu)
   K=kern(x_tr,x_tr,sigma, nu)
-  return Ks@np.linalg.inv(K+1e-10*np.eye(K.shape[0]))@(np.eye(K.shape[0])-expm(-t*K))@y_tr+y_tr_mean
+  return Ks@np.linalg.inv(K+1e-10*np.eye(K.shape[0]))@(np.eye(K.shape[0])-expm(-t*K))@y_tr
 
 
 def kern(X,Y,sigma, nu=np.inf):
@@ -91,23 +83,40 @@ def trans_x(x,inv=False, shift=.01,exp=5):
     return 1/x**exp-shift
   return 1/(x+shift)**(1/exp)
 
+def mse(fh,y):
+  return np.mean(np.square(y-fh))
 
-def gcv(X,y_in,lbda_bds,sigma_bds, nu=np.inf,center=True, rand=True):
-  lbdas=np.geomspace(lbda_bds[0], lbda_bds[1], 100)
-  sigmas=np.geomspace(sigma_bds[0], sigma_bds[1], 100)
-  y=y_in-np.mean(y_in) if center else y_in
+def cv10(X,y,lbda_bds,sigma_bds, seed, nu=np.inf, b_krr=True):
+  lbdas=np.geomspace(lbda_bds[0], lbda_bds[1], 30)
+  sigmas=np.geomspace(sigma_bds[0], sigma_bds[1], 30)
   n=X.shape[0]
+  np.random.seed(seed)
+  per=np.random.permutation(n)
+  folds=np.array_split(per,10)
   cvs=[]
   lbdas_sigmas=[]
-  for lbda in lbdas:
-    for sigma in sigmas:
-      sigma1=np.random.uniform(0.9,1.1)*sigma if rand else sigma
-      lbda1=np.random.uniform(0.9,1.1)*lbda if rand else lbda
-      K_l=kern(X,X,sigma1,nu)+lbda1*np.eye(n)
-      K_li=np.linalg.inv(K_l)
-      cvs.append(np.mean((K_li@y/np.diag(K_li).reshape((-1,1)))**2))
-      lbdas_sigmas.append([lbda1, sigma1])
-  return lbdas_sigmas[np.argmin(cvs)]
+  best_mse=np.inf
+  for sigma in sigmas:
+    for lbda in lbdas:
+      mses=[]
+      for v_fold in range(len(folds)):
+        t_folds=np.concatenate([folds[t_fold] for t_fold in range(len(folds)) if v_fold != t_fold])
+        v_folds=folds[v_fold]
+        X_tr=X[t_folds,:]
+        y_tr=y[t_folds,:]
+        X_val=X[v_folds,:]
+        y_val=y[v_folds,:]
+        if b_krr:
+          fh_val=krr(X_val, X_tr, y_tr,lbda,sigma, nu)
+        else:
+          fh_val=kgf(X_val, X_tr, y_tr,1/lbda,sigma, nu)
+        mses.append(mse(fh_val,y_val))
+      mean_mse=np.mean(mses)
+      if mean_mse<best_mse:
+        best_mse=mean_mse
+        best_lbda = lbda
+        best_sigma = sigma
+  return best_lbda, best_sigma
 
 def mml(x,y_in,lbda_bds,sigma_bds, nu=np.inf):
   warnings.filterwarnings('ignore')

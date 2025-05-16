@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH -A #####
+#SBATCH -A XXXX
 #SBATCH -t 02:00:00
 #SBATCH -o out_dd.txt
 #SBATCH -e err_dd.txt

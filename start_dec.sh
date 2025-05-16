@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#SBATCH -A #####
-#SBATCH -t 1:00:00
+#SBATCH -A XXXX
+#SBATCH -t 0:20:00
 #SBATCH -o out_dec.txt
 #SBATCH -e err_dec.txt
 #SBATCH -n 1

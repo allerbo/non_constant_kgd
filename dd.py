@@ -43,9 +43,9 @@ if data=='syn':
 else:
   X_tr, y_tr, X_te, y_te = make_data_real(data, seed)
 
-X_DICT={'compactiv': [0.4, 1e5], 'super': [0.3, 1e5], 'temp': [0.1, 1e2], 'power': [0.2, 1e5], 'wood': [1e-4, 1e5], 'syn': [1e-4, 20]}
+X_DICT={'compactiv': [0.2, 1e5], 'super': [0.2, 1e5], 'temp': [0.1, 1e2], 'power': [0.1, 1e5], 'syn': [1e-4, 20]}
 if nu==100:
-  X_DICT['syn']=[1e-4, 1]
+  X_DICT['syn']=[1e-4, 1.1]
 elif nu==10:
   X_DICT['syn']=[1e-4, 3]
 elif nu==0.5:

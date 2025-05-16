@@ -61,6 +61,3 @@ def kgd(Xs,X_tr,y_tr_in,sigma0=None,step_size=0.01,v_R2=0.1,sigma_min=1e-3,t_max
     return fhs, sigmas, r2s
   return fh+y_tr_mean
 
-
-
-
